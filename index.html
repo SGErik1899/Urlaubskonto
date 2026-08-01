@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Urlaubskonto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --tiefwasser:#0B3D57;
+    --hafenblau:#14607A;
+    --hafenblau-hell:#1C7D9E;
+    --schaum:#F3F7F6;
+    --schaum-dunkel:#E4ECEB;
+    --pegelgold:#D9A441;
+    --stahl:#52707D;
+    --stahl-hell:#8CA3AC;
+    --gefahr:#C0533C;
+    --linie:#D3DEDD;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--schaum);
+    color:var(--tiefwasser);
+    font-family:'Work Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:'Space Grotesk',sans-serif;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- Kopfbereich ---------- */
+  header{
+    background:var(--tiefwasser);
+    color:var(--schaum);
+    padding:22px 24px 0 24px;
+  }
+  .header-top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    max-width:1080px;
+    margin:0 auto;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header h1{
+    font-size:1.5rem;
+    font-weight:700;
+  }
+  header .subtitle{
+    font-size:0.82rem;
+    color:var(--stahl-hell);
+    margin-top:2px;
+  }
+  .jahr-leiste{
+    max-width:1080px;
+    margin:16px auto 0 auto;
+    display:flex;
+    align-items:flex-end;
+    gap:4px;
+    overflow-x:auto;
+    padding-bottom:0;
+  }
+  .jahr-tab{
+    background:transparent;
+    border:none;
+    color:var(--stahl-hell);
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.95rem;
+    padding:10px 16px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+    transition:color .15s ease;
+  }
+  .jahr-tab:hover{color:var(--schaum);}
+  .jahr-tab.aktiv{
+    color:var(--schaum);
+    border-bottom:3px solid var(--pegelgold);
+    font-weight:700;
+  }
+  .jahr-tab .haken{color:var(--pegelgold);margin-left:4px;font-weight:700;}
+  .jahr-tab-neu{
+    background:transparent;
+    border:none;
+    color:var(--pegelgold);
+    font-size:1.1rem;
+    padding:10px 14px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+  }
+  .jahr-tab-neu:hover{color:#f0c878;}
+
+  /* ---------- Layout ---------- */
+  main{
+    max-width:1080px;
+    margin:0 auto;
+    padding:28px 24px 60px 24px;
+    display:grid;
+    grid-template-columns:280px 1fr;
+    gap:24px;
+  }
+  @media (max-width:760px){
+    main{grid-template-columns:1fr;}
+  }
+  .karte{
+    background:#fff;
+    border:1px solid var(--linie);
+    border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .karte h2{
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    color:var(--stahl);
+    margin-bottom:14px;
+  }
+
+  /* ---------- Pegel / Schleusenkammer ---------- */
+  .pegel-karte{
+    background:var(--tiefwasser);
+    border:none;
+    color:var(--schaum);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:22px 20px 20px 20px;
+  }
+  .pegel-karte h2{color:var(--stahl-hell);}
+  .schleuse{
+    position:relative;
+    width:120px;
+    height:220px;
+    border-left:3px solid var(--hafenblau-hell);
+    border-right:3px solid var(--hafenblau-hell);
+    border-bottom:3px solid var(--hafenblau-hell);
+    border-radius:0 0 6px 6px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02));
+    overflow:hidden;
+  }
+  .schleuse .marke{
+    position:absolute;
+    left:0;right:0;
+    border-top:1px dashed rgba(140,163,172,0.35);
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.6rem;
+    color:var(--stahl-hell);
+    padding-left:4px;
+  }
+  .wasser{
+    position:absolute;
+    bottom:0;left:0;right:0;
+    background:linear-gradient(180deg, var(--hafenblau-hell), var(--hafenblau) 55%, #0E4F65);
+    transition:height 0.6s cubic-bezier(.4,0,.2,1);
+    height:0%;
+  }
+  .wasser::before{
+    content:"";
+    position:absolute;
+    top:-4px;left:0;right:0;height:8px;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,0.35) 0 10px, transparent 10px 20px);
+    opacity:.5;
+  }
+  .pegel-stand{
+    margin-top:16px;
+    text-align:center;
+  }
+  .pegel-stand .rest{
+    font-size:2.1rem;
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+    color:var(--pegelgold);
+    line-height:1;
+  }
+  .pegel-stand .rest-label{
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--stahl-hell);
+    margin-top:4px;
+  }
+  .pegel-zeilen{
+    width:100%;
+    margin-top:18px;
+    border-top:1px solid rgba(140,163,172,0.25);
+    padding-top:12px;
+  }
+  .pegel-zeile{
+    display:flex;
+    justify-content:space-between;
+    font-size:0.82rem;
+    padding:4px 0;
+  }
+  .pegel-zeile span:first-child{color:var(--stahl-hell);}
+  .pegel-zeile span:last-child{font-family:'JetBrains Mono',monospace;font-weight:500;}
+  .pegel-zeile.betont span:last-child{color:var(--pegelgold);}
+
+  .wasser-vorjahr{
+    position:absolute;
+    top:0;left:0;right:0;
+    height:0%;
+    background:linear-gradient(180deg, #E8BD6E, var(--pegelgold) 70%);
+    transition:height 0.6s cubic-bezier(.4,0,.2,1);
+  }
+
+  .vorjahr-hinweis{
+    width:100%;
+    margin-top:14px;
+    border-radius:8px;
+    padding:10px 12px;
+    background:rgba(217,164,65,0.14);
+    border:1px solid rgba(217,164,65,0.4);
+  }
+  .vorjahr-hinweis.erledigt{
+    background:rgba(140,163,172,0.12);
+    border:1px solid rgba(140,163,172,0.3);
+  }
+  .vorjahr-hinweis.versteckt{display:none;}
+  .vorjahr-hinweis-kopf{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:0.78rem;
+  }
+  .vorjahr-hinweis-kopf span:first-child{color:var(--schaum);}
+  .vorjahr-hinweis-kopf span:last-child{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--pegelgold);}
+  .vorjahr-hinweis.erledigt .vorjahr-hinweis-kopf span:last-child{color:var(--stahl-hell);}
+  .vorjahr-balken{
+    margin-top:8px;
+    height:5px;
+    border-radius:3px;
+    background:rgba(255,255,255,0.12);
+    overflow:hidden;
+  }
+  .vorjahr-balken-fuellung{
+    height:100%;
+    width:0%;
+    background:var(--pegelgold);
+    transition:width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .vorjahr-hinweis.erledigt .vorjahr-balken-fuellung{background:var(--stahl-hell);}
+
+  .abschluss-bereich{
+    width:100%;
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid rgba(140,163,172,0.25);
+  }
+  .btn-abschluss{
+    width:100%;
+    background:transparent;
+    color:var(--stahl-hell);
+    border:1px solid rgba(140,163,172,0.4);
+    border-radius:7px;
+    padding:9px 12px;
+    font-family:'Work Sans',sans-serif;
+    font-weight:600;
+    font-size:0.82rem;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .btn-abschluss:hover{background:rgba(255,255,255,0.08);color:var(--schaum);}
+  .abschluss-status{
+    display:none;
+    text-align:center;
+    font-size:0.78rem;
+    color:var(--stahl-hell);
+    line-height:1.5;
+  }
+  .abschluss-status .haken-kreis{
+    display:inline-block;
+    color:var(--pegelgold);
+    font-weight:700;
+    margin-right:4px;
+  }
+
+  /* ---------- Einstellungen ---------- */
+  .einstell-zeile{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .einstell-zeile label{
+    font-size:0.85rem;
+    color:var(--stahl);
+  }
+  .einstell-zeile input{
+    width:70px;
+    text-align:right;
+    padding:6px 8px;
+    border:1px solid var(--linie);
+    border-radius:6px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.85rem;
+    color:var(--tiefwasser);
+  }
+  .berechnung-hinweis{
+    font-size:0.74rem;
+    color:var(--stahl-hell);
+    margin-top:8px;
+    line-height:1.4;
+  }
+
+  /* ---------- Einträge ---------- */
+  .eintraege-kopf{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+  }
+  .btn{
+    background:var(--hafenblau);
+    color:#fff;
+    border:none;
+    border-radius:7px;
+    padding:9px 16px;
+    font-family:'Work Sans',sans-serif;
+    font-weight:600;
+    font-size:0.85rem;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn:hover{background:var(--hafenblau-hell);}
+  .btn-sekundaer{
+    background:transparent;
+    color:var(--stahl);
+    border:1px solid var(--linie);
+  }
+  .btn-sekundaer:hover{background:var(--schaum-dunkel);color:var(--tiefwasser);}
+  .btn-gefahr{background:transparent;color:var(--gefahr);border:1px solid transparent;padding:4px 8px;font-size:0.78rem;}
+  .btn-gefahr:hover{background:#FBEAE6;}
+  .btn-bearbeiten{background:transparent;color:var(--hafenblau);border:1px solid transparent;padding:4px 8px;font-size:0.78rem;}
+  .btn-bearbeiten:hover{background:var(--schaum-dunkel);}
+  .aktionen-zelle{display:flex;gap:2px;justify-content:flex-end;}
+
+  .formular{
+    display:none;
+    background:var(--schaum);
+    border:1px solid var(--linie);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:18px;
+  }
+  .formular.offen{display:block;}
+  .formular-zeile{
+    display:grid;
+    grid-template-columns:1fr 1fr 110px;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  @media (max-width:520px){
+    .formular-zeile{grid-template-columns:1fr;}
+  }
+  .formular label{
+    display:block;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--stahl);
+    margin-bottom:5px;
+  }
+  .formular input{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--linie);
+    border-radius:6px;
+    font-family:'Work Sans',sans-serif;
+    font-size:0.9rem;
+    color:var(--tiefwasser);
+  }
+  .formular input[type="number"]{font-family:'JetBrains Mono',monospace;}
+  .formular-aktionen{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--stahl);
+    padding:6px 8px;
+    border-bottom:1px solid var(--linie);
+  }
+  thead th.zahl, td.zahl{text-align:right;}
+  tbody td{
+    padding:10px 8px;
+    border-bottom:1px solid var(--schaum-dunkel);
+    font-size:0.88rem;
+  }
+  tbody td.zahl{font-family:'JetBrains Mono',monospace;}
+  tbody tr:last-child td{border-bottom:none;}
+  .notiz-zelle{color:var(--stahl);font-size:0.82rem;}
+  .leer-hinweis{
+    text-align:center;
+    color:var(--stahl-hell);
+    font-size:0.85rem;
+    padding:30px 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Urlaubskonto</h1>
+      <div class="subtitle">Grundurlaub &amp; Schichtzulage im Überblick</div>
+    </div>
+  </div>
+  <div class="jahr-leiste" id="jahrLeiste"></div>
+</header>
+
+<main>
+  <div>
+    <div class="karte pegel-karte">
+      <h2>Pegelstand</h2>
+      <div class="schleuse" id="schleuse">
+        <div class="wasser" id="wasser">
+          <div class="wasser-vorjahr" id="wasserVorjahr"></div>
+        </div>
+      </div>
+      <div class="pegel-stand">
+        <div class="rest mono" id="restTage">0</div>
+        <div class="rest-label">Tage übrig</div>
+      </div>
+      <div class="pegel-zeilen">
+        <div class="pegel-zeile"><span>Anspruch gesamt</span><span id="anspruchGesamt">0</span></div>
+        <div class="pegel-zeile"><span>davon Grundurlaub</span><span id="anspruchGrund">0</span></div>
+        <div class="pegel-zeile"><span>davon Schichtzulage</span><span id="anspruchZulage">0</span></div>
+        <div class="pegel-zeile betont"><span>davon Resturlaub Vorjahr</span><span id="anspruchVorjahr">0</span></div>
+        <div class="pegel-zeile"><span>verbraucht</span><span id="verbrauchtTage">0</span></div>
+      </div>
+      <div class="vorjahr-hinweis versteckt" id="vorjahrHinweis">
+        <div class="vorjahr-hinweis-kopf">
+          <span id="vorjahrHinweisText">Resturlaub Vorjahr offen</span>
+          <span class="mono" id="vorjahrHinweisZahl">0</span>
+        </div>
+        <div class="vorjahr-balken"><div class="vorjahr-balken-fuellung" id="vorjahrBalkenFuellung"></div></div>
+      </div>
+      <div class="abschluss-bereich">
+        <button class="btn-abschluss" id="btnJahrBeenden">Jahr beenden</button>
+        <div class="abschluss-status" id="abschlussStatus">
+          <span class="haken-kreis">✓</span><span id="abschlussStatusText"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="karte" style="margin-top:20px;">
+      <h2>Resturlaub aus dem Vorjahr <span class="mono" id="vorjahrKarteJahrLabel"></span></h2>
+      <div class="einstell-zeile">
+        <label for="inpRestVorjahr">Übertrag aus dem Vorjahr</label>
+        <input type="number" id="inpRestVorjahr" step="0.5" min="0">
+      </div>
+      <div class="berechnung-hinweis">
+        Wird zum Gesamtanspruch addiert und bei Urlaubseinträgen als Erstes verbraucht, bevor der laufende Anspruch angetastet wird.
+      </div>
+    </div>
+
+    <div class="karte" style="margin-top:20px;">
+      <h2>Einstellungen <span class="mono" id="einstellJahrLabel"></span></h2>
+      <div class="einstell-zeile">
+        <label for="inpGrundurlaub">Grundurlaub (Tage/Jahr)</label>
+        <input type="number" id="inpGrundurlaub" step="0.5" min="0">
+      </div>
+      <div class="einstell-zeile">
+        <label for="inpZulageProMonat">Schichtzulage pro Monat</label>
+        <input type="number" id="inpZulageProMonat" step="0.1" min="0">
+      </div>
+      <div class="einstell-zeile">
+        <label for="inpMonate">Monate im 3-Schicht-Betrieb</label>
+        <input type="number" id="inpMonate" step="1" min="0" max="12">
+      </div>
+      <div class="berechnung-hinweis">
+        Schichtzulage gesamt = Zulage/Monat × Monate im Schichtbetrieb.<br>
+        Bei ganzjährigem Schichtdienst also 0,5 × 12 = 6 zusätzliche Tage.
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="karte">
+      <div class="eintraege-kopf">
+        <h2 style="margin:0;">Urlaubseinträge <span class="mono" id="eintraegeJahrLabel"></span></h2>
+        <button class="btn" id="btnNeuerEintrag">+ Eintrag</button>
+      </div>
+
+      <div class="formular" id="formular">
+        <div class="formular-zeile">
+          <div>
+            <label for="inpVon">Von</label>
+            <input type="date" id="inpVon">
+          </div>
+          <div>
+            <label for="inpBis">Bis</label>
+            <input type="date" id="inpBis">
+          </div>
+          <div>
+            <label for="inpTage">Urlaubstage</label>
+            <input type="number" id="inpTage" step="0.5" min="0" placeholder="z.B. 5">
+          </div>
+        </div>
+        <div class="formular-zeile" style="grid-template-columns:1fr;">
+          <div>
+            <label for="inpNotiz">Notiz (optional)</label>
+            <input type="text" id="inpNotiz" placeholder="z.B. Ägypten-Reise">
+          </div>
+        </div>
+        <div class="formular-aktionen">
+          <button class="btn btn-sekundaer" id="btnAbbrechen">Abbrechen</button>
+          <button class="btn" id="btnSpeichern">Speichern</button>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Von</th>
+            <th>Bis</th>
+            <th class="zahl">Tage</th>
+            <th>Notiz</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="eintraegeKoerper"></tbody>
+      </table>
+      <div class="leer-hinweis" id="leerHinweis" style="display:none;">
+        Noch keine Urlaubseinträge für dieses Jahr.
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  const SPEICHER_KEY = "urlaubskonto_daten_v1";
+  const heute = new Date();
+  const aktuellesJahr = heute.getFullYear();
+
+  function ladeDaten(){
+    try{
+      const roh = localStorage.getItem(SPEICHER_KEY);
+      if(roh) return JSON.parse(roh);
+    }catch(e){}
+    return { jahre:{}, aktivesJahr:null };
+  }
+  function speichereDaten(){
+    localStorage.setItem(SPEICHER_KEY, JSON.stringify(daten));
+  }
+  function neuesJahrObjekt(){
+    return {
+      grundurlaub: 30,
+      zulageProMonat: 0.5,
+      monate: 12,
+      restVorjahr: 0,
+      beendet: false,
+      eintraege: []
+    };
+  }
+
+  let daten = ladeDaten();
+  let bearbeitungsId = null;
+  if(Object.keys(daten.jahre).length === 0){
+    daten.jahre[aktuellesJahr] = neuesJahrObjekt();
+    daten.aktivesJahr = aktuellesJahr;
+  }
+  if(!daten.aktivesJahr || !daten.jahre[daten.aktivesJahr]){
+    daten.aktivesJahr = Object.keys(daten.jahre).sort().pop();
+  }
+
+  const jahrLeiste = document.getElementById("jahrLeiste");
+  const wasser = document.getElementById("wasser");
+  const restTageEl = document.getElementById("restTage");
+  const anspruchGesamtEl = document.getElementById("anspruchGesamt");
+  const anspruchGrundEl = document.getElementById("anspruchGrund");
+  const anspruchZulageEl = document.getElementById("anspruchZulage");
+  const verbrauchtTageEl = document.getElementById("verbrauchtTage");
+  const einstellJahrLabel = document.getElementById("einstellJahrLabel");
+  const eintraegeJahrLabel = document.getElementById("eintraegeJahrLabel");
+  const vorjahrKarteJahrLabel = document.getElementById("vorjahrKarteJahrLabel");
+  const inpGrundurlaub = document.getElementById("inpGrundurlaub");
+  const inpZulageProMonat = document.getElementById("inpZulageProMonat");
+  const inpMonate = document.getElementById("inpMonate");
+  const inpRestVorjahr = document.getElementById("inpRestVorjahr");
+  const anspruchVorjahrEl = document.getElementById("anspruchVorjahr");
+  const wasserVorjahr = document.getElementById("wasserVorjahr");
+  const vorjahrHinweis = document.getElementById("vorjahrHinweis");
+  const vorjahrHinweisText = document.getElementById("vorjahrHinweisText");
+  const vorjahrHinweisZahl = document.getElementById("vorjahrHinweisZahl");
+  const vorjahrBalkenFuellung = document.getElementById("vorjahrBalkenFuellung");
+  const btnJahrBeenden = document.getElementById("btnJahrBeenden");
+  const abschlussStatus = document.getElementById("abschlussStatus");
+  const abschlussStatusText = document.getElementById("abschlussStatusText");
+  const eintraegeKoerper = document.getElementById("eintraegeKoerper");
+  const leerHinweis = document.getElementById("leerHinweis");
+  const formular = document.getElementById("formular");
+  const btnNeuerEintrag = document.getElementById("btnNeuerEintrag");
+  const btnAbbrechen = document.getElementById("btnAbbrechen");
+  const btnSpeichern = document.getElementById("btnSpeichern");
+  const inpVon = document.getElementById("inpVon");
+  const inpBis = document.getElementById("inpBis");
+  const inpTage = document.getElementById("inpTage");
+  const inpNotiz = document.getElementById("inpNotiz");
+
+  function formatTage(n){
+    const gerundet = Math.round(n*10)/10;
+    return (gerundet % 1 === 0 ? gerundet.toFixed(0) : gerundet.toFixed(1)).replace(".", ",");
+  }
+  function formatDatum(iso){
+    if(!iso) return "";
+    const [j,m,t] = iso.split("-");
+    return `${t}.${m}.${j}`;
+  }
+
+  function aktuellesJahrObjekt(){
+    return daten.jahre[daten.aktivesJahr];
+  }
+
+  function jahresliste(){
+    return Object.keys(daten.jahre).map(Number).sort((a,b)=>a-b);
+  }
+
+  function renderJahrLeiste(){
+    jahrLeiste.innerHTML = "";
+    jahresliste().forEach(jahr => {
+      const btn = document.createElement("button");
+      btn.className = "jahr-tab" + (jahr === daten.aktivesJahr ? " aktiv" : "");
+      btn.innerHTML = jahr + (daten.jahre[jahr].beendet ? '<span class="haken">✓</span>' : "");
+      btn.addEventListener("click", () => {
+        daten.aktivesJahr = jahr;
+        speichereDaten();
+        renderAlles();
+      });
+      jahrLeiste.appendChild(btn);
+    });
+    const neu = document.createElement("button");
+    neu.className = "jahr-tab-neu";
+    neu.textContent = "+ Jahr";
+    neu.title = "Neues Jahr anlegen";
+    neu.addEventListener("click", () => {
+      const vorschlag = Math.max(...jahresliste()) + 1;
+      const eingabe = prompt("Für welches Jahr anlegen?", vorschlag);
+      if(!eingabe) return;
+      const jahr = parseInt(eingabe, 10);
+      if(!jahr || jahr < 2000 || jahr > 2100) { alert("Bitte eine gültige Jahreszahl eingeben."); return; }
+      if(!daten.jahre[jahr]){
+        daten.jahre[jahr] = neuesJahrObjekt();
+      }
+      daten.aktivesJahr = jahr;
+      speichereDaten();
+      renderAlles();
+    });
+    jahrLeiste.appendChild(neu);
+  }
+
+  function berechneAnspruch(jahrObj){
+    const grund = parseFloat(jahrObj.grundurlaub) || 0;
+    const zulage = (parseFloat(jahrObj.zulageProMonat) || 0) * (parseFloat(jahrObj.monate) || 0);
+    const vorjahr = parseFloat(jahrObj.restVorjahr) || 0;
+    return { grund, zulage, vorjahr, gesamt: grund + zulage + vorjahr };
+  }
+  function berechneVerbraucht(jahrObj){
+    return jahrObj.eintraege.reduce((summe, e) => summe + (parseFloat(e.tage) || 0), 0);
+  }
+  // Resturlaub aus dem Vorjahr wird bei Urlaubseinträgen zuerst verbraucht.
+  function berechneVorjahrAufteilung(jahrObj){
+    const anspruch = berechneAnspruch(jahrObj);
+    const verbraucht = berechneVerbraucht(jahrObj);
+    const vorjahrVerbraucht = Math.min(verbraucht, anspruch.vorjahr);
+    const vorjahrUebrig = anspruch.vorjahr - vorjahrVerbraucht;
+    return { vorjahrVerbraucht, vorjahrUebrig };
+  }
+
+  function renderPegel(){
+    const jahrObj = aktuellesJahrObjekt();
+    const anspruch = berechneAnspruch(jahrObj);
+    const verbraucht = berechneVerbraucht(jahrObj);
+    const rest = anspruch.gesamt - verbraucht;
+    const { vorjahrUebrig } = berechneVorjahrAufteilung(jahrObj);
+
+    anspruchGesamtEl.textContent = formatTage(anspruch.gesamt);
+    anspruchGrundEl.textContent = formatTage(anspruch.grund);
+    anspruchZulageEl.textContent = formatTage(anspruch.zulage);
+    anspruchVorjahrEl.textContent = formatTage(anspruch.vorjahr);
+    verbrauchtTageEl.textContent = formatTage(verbraucht);
+    restTageEl.textContent = formatTage(rest);
+
+    const prozent = anspruch.gesamt > 0 ? Math.max(0, Math.min(100, (rest / anspruch.gesamt) * 100)) : 0;
+    wasser.style.height = prozent + "%";
+    wasser.style.background = rest < 0
+      ? "linear-gradient(180deg, #D97757, #C0533C 55%, #8A3A28)"
+      : "";
+    if(rest >= 0){
+      wasser.style.removeProperty("background");
+    }
+
+    // Anteil des sichtbaren Wasserstands, der noch aus dem Vorjahr stammt
+    const vorjahrAnteilAmRest = rest > 0 ? Math.max(0, Math.min(100, (vorjahrUebrig / rest) * 100)) : 0;
+    wasserVorjahr.style.height = (rest >= 0 ? vorjahrAnteilAmRest : 0) + "%";
+
+    if(anspruch.vorjahr <= 0){
+      vorjahrHinweis.classList.add("versteckt");
+    } else {
+      vorjahrHinweis.classList.remove("versteckt");
+      if(vorjahrUebrig > 0){
+        vorjahrHinweis.classList.remove("erledigt");
+        vorjahrHinweisText.textContent = "Resturlaub Vorjahr noch offen";
+      } else {
+        vorjahrHinweis.classList.add("erledigt");
+        vorjahrHinweisText.textContent = "Resturlaub Vorjahr aufgebraucht";
+      }
+      vorjahrHinweisZahl.textContent = formatTage(vorjahrUebrig) + " Tage";
+      const balkenProzent = anspruch.vorjahr > 0 ? Math.max(0, Math.min(100, (vorjahrUebrig / anspruch.vorjahr) * 100)) : 0;
+      vorjahrBalkenFuellung.style.width = balkenProzent + "%";
+    }
+
+    if(jahrObj.beendet){
+      btnJahrBeenden.style.display = "none";
+      abschlussStatus.style.display = "block";
+      const zielJahr = jahrObj.beendetZiel || (daten.aktivesJahr + 1);
+      const uebertrag = jahrObj.beendetTage !== undefined ? formatTage(jahrObj.beendetTage) : formatTage(Math.max(0, rest));
+      abschlussStatusText.textContent = `Jahr abgeschlossen – ${uebertrag} Tage nach ${zielJahr} übertragen`;
+    } else {
+      btnJahrBeenden.style.display = "block";
+      abschlussStatus.style.display = "none";
+    }
+  }
+
+  function renderEinstellungen(){
+    const jahrObj = aktuellesJahrObjekt();
+    einstellJahrLabel.textContent = daten.aktivesJahr;
+    eintraegeJahrLabel.textContent = daten.aktivesJahr;
+    vorjahrKarteJahrLabel.textContent = daten.aktivesJahr;
+    inpGrundurlaub.value = jahrObj.grundurlaub;
+    inpZulageProMonat.value = jahrObj.zulageProMonat;
+    inpMonate.value = jahrObj.monate;
+    inpRestVorjahr.value = jahrObj.restVorjahr || 0;
+  }
+
+  function renderEintraege(){
+    const jahrObj = aktuellesJahrObjekt();
+    eintraegeKoerper.innerHTML = "";
+    // Neuester Eintrag (zuletzt angelegt) zuerst
+    const sortiert = [...jahrObj.eintraege].reverse();
+    if(sortiert.length === 0){
+      leerHinweis.style.display = "block";
+    } else {
+      leerHinweis.style.display = "none";
+    }
+    sortiert.forEach(eintrag => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${formatDatum(eintrag.von)}</td>
+        <td>${formatDatum(eintrag.bis)}</td>
+        <td class="zahl">${formatTage(eintrag.tage)}</td>
+        <td class="notiz-zelle">${eintrag.notiz ? escapeHtml(eintrag.notiz) : "—"}</td>
+        <td><div class="aktionen-zelle">
+          <button class="btn-bearbeiten" data-edit-id="${eintrag.id}">Bearbeiten</button>
+          <button class="btn-gefahr" data-id="${eintrag.id}">Löschen</button>
+        </div></td>
+      `;
+      eintraegeKoerper.appendChild(tr);
+    });
+    eintraegeKoerper.querySelectorAll("button[data-id]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        jahrObj.eintraege = jahrObj.eintraege.filter(e => e.id !== id);
+        speichereDaten();
+        renderAlles();
+      });
+    });
+    eintraegeKoerper.querySelectorAll("button[data-edit-id]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-edit-id");
+        const eintrag = jahrObj.eintraege.find(e => e.id === id);
+        if(!eintrag) return;
+        bearbeitungsId = id;
+        inpVon.value = eintrag.von;
+        inpBis.value = eintrag.bis;
+        inpTage.value = eintrag.tage;
+        inpNotiz.value = eintrag.notiz || "";
+        formular.classList.add("offen");
+        inpVon.focus();
+      });
+    });
+  }
+
+  function escapeHtml(text){
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function renderAlles(){
+    renderJahrLeiste();
+    renderEinstellungen();
+    renderPegel();
+    renderEintraege();
+  }
+
+  // Einstellungen speichern bei Änderung
+  [inpGrundurlaub, inpZulageProMonat, inpMonate, inpRestVorjahr].forEach(inp => {
+    inp.addEventListener("change", () => {
+      const jahrObj = aktuellesJahrObjekt();
+      jahrObj.grundurlaub = parseFloat(inpGrundurlaub.value) || 0;
+      jahrObj.zulageProMonat = parseFloat(inpZulageProMonat.value) || 0;
+      jahrObj.monate = parseFloat(inpMonate.value) || 0;
+      jahrObj.restVorjahr = parseFloat(inpRestVorjahr.value) || 0;
+      speichereDaten();
+      renderPegel();
+    });
+  });
+
+  btnJahrBeenden.addEventListener("click", () => {
+    const jahrObj = aktuellesJahrObjekt();
+    const anspruch = berechneAnspruch(jahrObj);
+    const verbraucht = berechneVerbraucht(jahrObj);
+    const rest = Math.max(0, anspruch.gesamt - verbraucht);
+    const zielJahr = daten.aktivesJahr + 1;
+    const bestaetigt = confirm(
+      `${daten.aktivesJahr} beenden und ${formatTage(rest)} Tage Resturlaub nach ${zielJahr} übertragen?`
+    );
+    if(!bestaetigt) return;
+    if(!daten.jahre[zielJahr]){
+      daten.jahre[zielJahr] = neuesJahrObjekt();
+    }
+    daten.jahre[zielJahr].restVorjahr = rest;
+    jahrObj.beendet = true;
+    jahrObj.beendetTage = rest;
+    jahrObj.beendetZiel = zielJahr;
+    speichereDaten();
+    renderAlles();
+  });
+
+  btnNeuerEintrag.addEventListener("click", () => {
+    bearbeitungsId = null;
+    inpVon.value = "";
+    inpBis.value = "";
+    inpTage.value = "";
+    inpNotiz.value = "";
+    formular.classList.add("offen");
+    inpVon.focus();
+  });
+  btnAbbrechen.addEventListener("click", () => {
+    bearbeitungsId = null;
+    formular.classList.remove("offen");
+  });
+  btnSpeichern.addEventListener("click", () => {
+    const von = inpVon.value;
+    const bis = inpBis.value;
+    const tage = parseFloat(inpTage.value);
+    if(!von || !bis){
+      alert("Bitte Von- und Bis-Datum angeben.");
+      return;
+    }
+    if(!tage || tage <= 0){
+      alert("Bitte die Anzahl der Urlaubstage angeben.");
+      return;
+    }
+    const jahrObj = aktuellesJahrObjekt();
+    if(bearbeitungsId){
+      const eintrag = jahrObj.eintraege.find(e => e.id === bearbeitungsId);
+      if(eintrag){
+        eintrag.von = von;
+        eintrag.bis = bis;
+        eintrag.tage = tage;
+        eintrag.notiz = inpNotiz.value.trim();
+      }
+    } else {
+      jahrObj.eintraege.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        von, bis, tage,
+        notiz: inpNotiz.value.trim()
+      });
+    }
+    bearbeitungsId = null;
+    speichereDaten();
+    formular.classList.remove("offen");
+    renderAlles();
+  });
+
+  renderAlles();
+})();
+</script>
+</body>
+</html>
